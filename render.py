@@ -122,14 +122,13 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
                          None, view.image_name, view.uid)
             rendering = render(cam, gaussians, pipeline, background)
 
-            ss, ps, lps, _, centered, depth = find_optimal_placement_and_compute_metrics(rendering["render"].mean(0), gt.mean(0),rendering['depth'], 450, cam.original_image.shape[-1])
+            ss, ps, lps, _, centered = find_optimal_placement_and_compute_metrics(rendering["render"].mean(0), gt.mean(0), 450, cam.original_image.shape[-1])
             if ss > ssmx:
                 ssmx = ss
                 psnrmx = ps
                 lpipsmx = lps
                 mx_ = _
                 centered_img = centered
-                depth_img = rendering['depth']
         ssim_.append(ssmx)
         psnr_.append(psnrmx)
         lpips_.append(lpipsmx)
@@ -162,7 +161,7 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     print("lpips val:",lpips_[1::2].mean())
 
 
-def find_optimal_placement_and_compute_metrics(img1, img2, depth,n,img_width):
+def find_optimal_placement_and_compute_metrics(img1, img2,n,img_width):
 
     # Check if n is greater than img_width
     if n <= img_width:
@@ -209,10 +208,8 @@ def find_optimal_placement_and_compute_metrics(img1, img2, depth,n,img_width):
                 # print("Optimal x, y, L2 loss, SSIM, PSNR, LPIPS:", optimal_x, optimal_y, optimal_l2_loss, optimal_ssim, optimal_psnr, optimal_lpips)
     expanded_img1 = torch.zeros((n, n), dtype=img1.dtype).cuda()
     expanded_img1[optimal_y:optimal_y + img_width, optimal_x:optimal_x + img_width] = img1
-    expanded_depth = torch.ones((n, n), dtype=depth.dtype).cuda() * depth.min()
-    expanded_depth[optimal_y:optimal_y + img_width, optimal_x:optimal_x + img_width] = depth
     print("Optimal x, y, L2 loss, SSIM, PSNR, LPIPS:", optimal_x, optimal_y, optimal_l2_loss, optimal_ssim, optimal_psnr, optimal_lpips)
-    return optimal_ssim, optimal_psnr, optimal_lpips, (expanded_img2[optimal_y:optimal_y + img_width, optimal_x:optimal_x + img_width] + img1)/2, expanded_img1[(n-img_width)//2:(n-img_width)//2 + img_width, (n-img_width)//2:(n-img_width)//2 + img_width], expanded_depth[(n-img_width)//2:(n-img_width)//2 + img_width, (n-img_width)//2:(n-img_width)//2 + img_width]
+    return optimal_ssim, optimal_psnr, optimal_lpips, (expanded_img2[optimal_y:optimal_y + img_width, optimal_x:optimal_x + img_width] + img1)/2, expanded_img1[(n-img_width)//2:(n-img_width)//2 + img_width, (n-img_width)//2:(n-img_width)//2 + img_width]
 
 
 def render_sets(dataset : ModelParams, iteration : int, pipeline : PipelineParams, skip_train : bool, skip_test : bool):
